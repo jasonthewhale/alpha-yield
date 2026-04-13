@@ -87,7 +87,11 @@ Use this on the first invocation or when no config file exists.
 2. **Wallet Address** — Confirm the `userAddress` obtained from Step 0. If the wallet has multiple addresses, ask which one to use. Briefly explain:
    - `userAddress`: Your wallet address that holds the token positions. This is used to look up your current allocations and balances.
 
-3. **Invest Amount** — Before asking, query the user's actual token balance on-chain (use `okx-wallet-portfolio` or equivalent) so you can display the real amount. Then ask whether the user wants to deploy the full balance or cap at a specific amount, showing the actual balance in the prompt. For example: "You have **1,023.45 USDC** on Base. Deploy the full amount, or cap at a specific amount?" Briefly explain:
+3. **Invest Amount** — Before asking, query the user's actual token balance on-chain so you can display the real amount. Use the following command (note: `--token-address` not `--token`; no `--address` flag — the CLI queries all configured wallet accounts):
+   ```bash
+   onchainos wallet balance --chain <chainId> --token-address <tokenAddress>
+   ```
+   Then ask whether the user wants to deploy the full balance or cap at a specific amount, showing the actual balance in the prompt. For example: "You have **1,023.45 USDC** on Base. Deploy the full amount, or cap at a specific amount?" Briefly explain:
    - `investAmount`: The maximum amount of tokens to allocate across yield protocols. Set a cap if you don't want to put all your tokens to work (e.g., "only use 500 of my 1,023.45 USDC"). Default: **your full token balance** (the queried amount).
 
 4. **Advanced Tuning** — Ask the user to configure step size and APY threshold, or use defaults. Present the options with brief explanations:
