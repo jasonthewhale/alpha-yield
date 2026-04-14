@@ -1,9 +1,6 @@
 ---
 name: alpha-yield
 description: "Use this skill to 'rebalance vault', 'curator rebalance', 'optimize yield allocations', 'rebalance DeFi positions', 'rebalance USDC on Base', 'check rebalance actions', 'execute rebalance', 'yield optimizer', 'get optimal yield strategy', 'auto rebalance loop', 'start rebalance monitor', 'withdraw all positions', 'exit all yield positions', 'withdraw from curator', 'stop rebalance and withdraw', or mentions curator protocol rebalancing, yield optimization across DeFi vaults/pools, checking/executing rebalance actions for a curator, setting up recurring automatic rebalancing, or withdrawing all positions from the curator. Supports one-shot rebalance, loop mode for continuous automated rebalancing, and full withdrawal of all managed positions. Do NOT use for general DEX swaps — use okx-dex-swap. Do NOT use for simple token transfers — use okx-agentic-wallet. Do NOT use for DeFi invest/withdraw via product search — use okx-defi-invest."
-metadata:
-  author: degeninokx
-  version: "1.0.0"
 ---
 
 # Curator Rebalance
@@ -87,11 +84,7 @@ Use this on the first invocation or when no config file exists.
 2. **Wallet Address** — Confirm the `userAddress` obtained from Step 0. If the wallet has multiple addresses, ask which one to use. Briefly explain:
    - `userAddress`: Your wallet address that holds the token positions. This is used to look up your current allocations and balances.
 
-3. **Invest Amount** — Before asking, query the user's actual token balance on-chain so you can display the real amount. Use the following command (note: `--token-address` not `--token`; no `--address` flag — the CLI queries all configured wallet accounts):
-   ```bash
-   onchainos wallet balance --chain <chainId> --token-address <tokenAddress>
-   ```
-   Then ask whether the user wants to deploy the full balance or cap at a specific amount, showing the actual balance in the prompt. For example: "You have **1,023.45 USDC** on Base. Deploy the full amount, or cap at a specific amount?" Briefly explain:
+3. **Invest Amount** — Before asking, query the user's actual token balance on-chain (use `okx-wallet-portfolio` or equivalent) so you can display the real amount. Then ask whether the user wants to deploy the full balance or cap at a specific amount, showing the actual balance in the prompt. For example: "You have **1,023.45 USDC** on Base. Deploy the full amount, or cap at a specific amount?" Briefly explain:
    - `investAmount`: The maximum amount of tokens to allocate across yield protocols. Set a cap if you don't want to put all your tokens to work (e.g., "only use 500 of my 1,023.45 USDC"). Default: **your full token balance** (the queried amount).
 
 4. **Advanced Tuning** — Ask the user to configure step size and APY threshold, or use defaults. Present the options with brief explanations:
@@ -106,13 +99,19 @@ If the user wants to limit how much capital to deploy, ask for the amount and co
 #### Step 2: Fetch Rebalance Actions
 
 ```bash
-curl -sS "${CURATOR_API_URL:-https://beta.okex.org:443}/priapi/v1/invest/activity/test/optimizer/rebalance?chainId=<chainId>&tokenAddress=<tokenAddress>&userAddress=<userAddress>&stepPercent=<stepPercent>&apyDiffThreshPercent=<apyDiffThreshPercent>[&investAmount=<investAmount>]"
+curl -sS -X POST "${CURATOR_API_URL:-https://api.alpha-yield.com}/api/v1/rebalance" \
+  -H "Content-Type: application/json" \
+  -d '{"chainId":<chainId>,"tokenAddress":"<tokenAddress>","userAddress":"<userAddress>","stepPercent":<stepPercent>,"apyDiffThreshPercent":<apyDiffThreshPercent>}'
 ```
 
-Parse response. Filter `data.recommendations[]` for actionable items: `action != "HOLD"` and `calldata != null`.
+Add `"investAmount":"<investAmount>"` to the JSON body if specified (as a string).
+
+Parse response directly (no `data` wrapper). Filter `recommendations[]` for actionable items: `action != "HOLD"` and `calldata != null`.
+
+Note: BigInt fields (`totalValue`, `currentAmount`, `targetAmount`, `delta`, `lockedAmount`, `totalWithdrawable`, `totalLocked`) are serialized as **strings**.
 
 - If API unreachable → "Curator optimizer service not reachable. Ensure the service is running."
-- If `code != 0` → display `error_message`
+- If HTTP error → display error response
 - If no actionable items → "Current allocation is already optimal (APY: X.XX%)"
 
 #### Step 3: Display & Confirm
@@ -221,7 +220,9 @@ Withdraws all managed positions across protocols back to the user's wallet. Can 
 
 2. **Fetch withdraw-all actions**:
    ```bash
-   curl -sS "${CURATOR_API_URL:-https://beta.okex.org:443}/priapi/v1/invest/activity/test/optimizer/withdrawAll?chainId=<chainId>&tokenAddress=<tokenAddress>&userAddress=<userAddress>"
+   curl -sS -X POST "${CURATOR_API_URL:-https://api.alpha-yield.com}/api/v1/rebalance/withdraw-all" \
+     -H "Content-Type: application/json" \
+     -d '{"chainId":<chainId>,"tokenAddress":"<tokenAddress>","userAddress":"<userAddress>"}'
    ```
 
 3. **Display summary & confirm** — This is a high-impact action, so **always ask for confirmation**:
@@ -233,7 +234,7 @@ Withdraws all managed positions across protocols back to the user's wallet. Can 
    #  Action    Protocol      Pool (abbrev)    Amount
    1  WITHDRAW  Morpho Blue   0x9a67...ac17    2.32 USDC
    ```
-   - Convert amounts from minimal units using token decimals
+   - Convert amounts from minimal units using token decimals (amounts are **strings**, parse accordingly)
    - Show `totalWithdrawable` and `totalLocked` from the response
    - If `totalLocked > 0`, inform the user that some funds are locked and cannot be withdrawn immediately
 
@@ -254,7 +255,7 @@ Withdraws all managed positions across protocols back to the user's wallet. Can 
 
 | Variable | Default | Description |
 |---|---|---|
-| `CURATOR_API_URL` | `https://beta.okex.org:443` | Base URL for the curator optimizer API |
+| `CURATOR_API_URL` | `https://api.alpha-yield.com` | Base URL for the curator optimizer API |
 
 ## Edge Cases
 
@@ -264,3 +265,4 @@ Withdraws all managed positions across protocols back to the user's wallet. Can 
 
 For loop-mode error handling (API failures, wallet expiry, gas, partial execution, circuit breaker), see [references/loop-error-handling.md](references/loop-error-handling.md).
 For on-chain execution errors, see [references/execution-patterns.md](references/execution-patterns.md).
+

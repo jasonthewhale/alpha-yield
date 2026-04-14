@@ -9,7 +9,7 @@ When running in loop auto mode, errors must be handled gracefully to avoid infin
 | Error | Where in flow | Why retryable |
 |---|---|---|
 | Curator API timeout | Fetch actions | Network blip; next call likely works |
-| Curator API 5xx | Fetch actions | Server-side transient error |
+| Curator API HTTP 5xx | Fetch actions | Server-side transient error |
 | Curator API connection refused | Fetch actions | Service restarting |
 | RPC node error | Execute txs | Node overloaded, onchainos may failover |
 | Broadcast network error | Execute txs | Network hiccup during broadcast |
@@ -27,7 +27,7 @@ Action: log warning, increment `consecutiveFailures`, continue to next iteration
 | On-chain revert | Execute txs | Wastes gas on repeated reverts |
 | Partial execution failure | Execute txs (mid-sequence) | Funds in transitional state |
 | Config file missing / corrupted | Load config | Can't proceed; fall back to interactive mode |
-| Curator API 4xx | Fetch actions | Bad params; won't self-heal |
+| Curator API HTTP 4xx | Fetch actions | Bad params; won't self-heal |
 | Security scan blocks tx (`risk: block`) | Pre-execute scan | Calldata flagged risky |
 
 Action: set `autoExecute: false` in config, log error with reason. User must fix and re-enable.
@@ -64,12 +64,12 @@ If ETH balance < `0.001 ETH` → skip execution, pause auto-execution.
 Always use timeouts in loop mode:
 
 ```bash
-curl -sS --connect-timeout 10 --max-time 30 "${CURATOR_API_URL:-https://beta.okex.org:443}/priapi/v1/..."
+curl -sS --connect-timeout 10 --max-time 30 "${CURATOR_API_URL:-https://api.alpha-yield.com}/api/v1/..."
 ```
 
 - Timeout → retryable
 - Connection refused → retryable
-- HTTP 4xx → must stop
+- HTTP 4xx (400 validation error) → must stop
 
 ## Stale Calldata Protection
 
@@ -121,3 +121,4 @@ Examples:
 [alpha-yield] ERROR Partial execution: 1/3 steps. SUPPLY reverted. Pausing.
 [alpha-yield] PAUSED Circuit breaker: 3 consecutive failures.
 ```
+
