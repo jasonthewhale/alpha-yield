@@ -145,8 +145,11 @@ For each actionable recommendation, in array order:
 onchainos wallet contract-call \
   --to <recommendation.targetContract> \
   --chain <chainId> \
+  --from <userAddress> \
   --input-data <recommendation.calldata>
 ```
+
+Always pass `--from <userAddress>` so the call is signed by the target wallet rather than whichever account happens to be active. Without it, a mismatch between the logged-in signer and the `userAddress` used for the optimizer request causes `transferFrom reverted` at SUPPLY time.
 
 Execution rules:
 - Execute strictly in array order

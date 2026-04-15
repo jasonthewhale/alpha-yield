@@ -6,6 +6,7 @@
 onchainos wallet contract-call \
   --to <contract_address> \
   --chain <chainIndex> \
+  --from <user_address> \
   --input-data <hex_calldata>
 ```
 
@@ -13,6 +14,7 @@ onchainos wallet contract-call \
 |---|---|---|
 | `--to` | Yes | Target contract address |
 | `--chain` | Yes | Numeric chain ID (Base = `8453`) |
+| `--from` | Yes | Sender address — must match the `userAddress` passed to the optimizer. Prevents signer/userAddress mismatches when multiple accounts/addresses exist. |
 | `--input-data` | Yes | Hex-encoded calldata from the optimizer API |
 | `--force` | No | Skip confirmation prompt. **NEVER on first invocation.** |
 
